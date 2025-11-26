@@ -1,0 +1,242 @@
+:root {
+  font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 600;
+
+  
+  /* Variables pour les tailles de police adaptées aux enfants */
+  --font-size-huge: 5rem;
+  --font-size-xlarge: 3rem;
+  --font-size-large: 2rem;
+  --font-size-medium: 1.5rem;
+  --font-size-small: 1.2rem;
+  
+  /* Variables pour les couleurs avec meilleur contraste */
+  --primary-color: #2E7D32;
+  --secondary-color: #1565C0;
+  --accent-color: #F57C00;
+  --text-primary: #212121;
+  --text-secondary: #424242;
+  --background-light: #FFFFFF;
+  --background-hover: #E8F5E9;
+  
+  /* Theme variables */
+  --theme-background: #f0f2f5;
+  --theme-card-background: #ffffff;
+  --theme-border-color: #4CAF50;
+  --theme-text-color: #2c3e50;
+  --theme-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --theme-hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  --theme-button-background: #ffffff;
+  --theme-button-color: #2c3e50;
+  --theme-button-hover: #f0f9f0;
+  --theme-button-active: #4CAF50;
+  --theme-button-active-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* Amélioration de l'accessibilité */
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: var(--theme-background);
+  color: var(--theme-text-color);
+  transition: all 0.3s ease;
+}
+
+#app {
+  width: 100%;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Styles d'accessibilité globaux */
+button {
+  cursor: pointer;
+  min-height: 44px; /* Pour une meilleure zone de touch */
+  min-width: 44px;
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  border: 3px solid var(--theme-border-color);
+  background: var(--theme-button-background);
+  transition: all 0.3s ease;
+  font-size: var(--font-size-medium);
+  font-weight: bold;
+  color: var(--theme-button-color);
+}
+
+button:hover {
+  transform: scale(1.05);
+  background: var(--theme-button-hover);
+}
+
+button:focus-visible {
+  outline: 4px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+/* Theme: Space */
+.theme-space {
+  --theme-background: #0a0a2a;
+  --theme-card-background: rgba(13, 13, 50, 0.95);
+  --theme-border-color: #4a9eff;
+  --theme-text-color: #ffffff;
+  --theme-shadow: 0 4px 15px rgba(74, 158, 255, 0.2);
+  --theme-hover-shadow: 0 8px 25px rgba(74, 158, 255, 0.4);
+  --theme-button-background: rgba(13, 13, 50, 0.8);
+  --theme-button-color: #ffffff;
+  --theme-button-hover: rgba(74, 158, 255, 0.2);
+  --theme-button-active: #4a9eff;
+  --theme-button-active-color: #ffffff;
+  background: 
+    linear-gradient(rgba(10, 10, 42, 0.9), rgba(10, 10, 42, 0.9)),
+    url('https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed,
+    #0a0a2a;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Theme: Jungle */
+.theme-jungle {
+  --theme-background: #1a472a;
+  --theme-card-background: rgba(255, 255, 255, 0.9);
+  --theme-border-color: #2d5a1b;
+  --theme-text-color: #2d5a1b;
+  --theme-shadow: 0 4px 15px rgba(26, 71, 42, 0.2);
+  --theme-hover-shadow: 0 8px 25px rgba(26, 71, 42, 0.4);
+  --theme-button-background: #ffffff;
+  --theme-button-color: #2d5a1b;
+  --theme-button-hover: #e8f5e9;
+  --theme-button-active: #2d5a1b;
+  --theme-button-active-color: #ffffff;
+  background-image: 
+    linear-gradient(120deg, rgba(26, 71, 42, 0.8), rgba(45, 90, 27, 0.8)),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l30 30-30 30L0 30z' fill='%23ffffff' fill-opacity='0.1'/%3E%3C/svg%3E");
+}
+
+/* Theme: Ocean */
+.theme-ocean {
+  --theme-background: #006994;
+  --theme-card-background: rgba(255, 255, 255, 0.9);
+  --theme-border-color: #00a6fb;
+  --theme-text-color: #003554;
+  --theme-shadow: 0 4px 15px rgba(0, 105, 148, 0.2);
+  --theme-hover-shadow: 0 8px 25px rgba(0, 105, 148, 0.4);
+  --theme-button-background: #ffffff;
+  --theme-button-color: #006994;
+  --theme-button-hover: #e3f2fd;
+  --theme-button-active: #00a6fb;
+  --theme-button-active-color: #ffffff;
+  background-image: 
+    linear-gradient(0deg, rgba(0, 105, 148, 0.8), rgba(0, 166, 251, 0.4)),
+    url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20c5.523 0 10-4.477 10-10S5.523 0 0 0v20zm20 0c5.523 0 10-4.477 10-10S25.523 0 20 0v20z' fill='%23ffffff' fill-opacity='0.1'/%3E%3C/svg%3E");
+}
+
+.theme-space::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    url('https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat,
+    radial-gradient(circle at 50% 50%, rgba(74, 158, 255, 0.1) 0%, transparent 50%);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.theme-space::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: screen;
+}
+
+.theme-space .app-container {
+  position: relative;
+  z-index: 2;
+}
+
+/* Theme animations */
+.theme-space .alphabet-card,
+.theme-space .number-card,
+.theme-space button {
+  box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+  backdrop-filter: blur(10px);
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(74, 158, 255, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(74, 158, 255, 0.5); }
+}
+
+.theme-jungle .alphabet-card,
+.theme-jungle .number-card {
+  backdrop-filter: blur(5px);
+}
+
+.theme-ocean .alphabet-card,
+.theme-ocean .number-card {
+  backdrop-filter: blur(5px);
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Animations plus douces */
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    scroll-behavior: smooth;
+  }
+  
+  .transition-all {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Support des grands écrans */
+@media (min-width: 1400px) {
+  .app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+}
+
+/* Adaptation mobile */
+@media (max-width: 768px) {
+  :root {
+    --font-size-huge: 4rem;
+    --font-size-xlarge: 2.5rem;
+    --font-size-large: 1.8rem;
+    --font-size-medium: 1.3rem;
+    --font-size-small: 1rem;
+  }
+  
+  button {
+    padding: 0.6rem 1.2rem;
+  }
+}
