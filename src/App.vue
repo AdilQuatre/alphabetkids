@@ -79,12 +79,13 @@ const allLanguages: Record<Language, string> = {
   nl: 'Nederlands'
 };
 
-const languages = computed(() => {
-  const result: Record<Language, string> = {};
+const languages = computed<Record<Language, string>>(() => {
+  // Cast as partial first then full record to satisfy TS, knowing we filter from allLanguages
+  const result: Partial<Record<Language, string>> = {};
   selectedLanguages.value.forEach(lang => {
     result[lang] = allLanguages[lang];
   });
-  return result;
+  return result as Record<Language, string>;
 });
 
 // Game State
