@@ -88,17 +88,13 @@ const getPieceStyle = (piece: PuzzlePiece) => {
 
 // Drag Logic
 const startDrag = (e: MouseEvent | TouchEvent, piece: PuzzlePiece) => {
-  // Allow dragging even if placed (to correct mistakes)
+  // Prevent dragging if already placed (locked)
+  if (piece.isPlaced) return;
+
   e.preventDefault(); 
   isDragging.value = true;
   draggedPieceId.value = piece.id;
   
-  // If it was placed, unplace it while dragging
-  if (piece.isPlaced) {
-    piece.isPlaced = false;
-    isComplete.value = false;
-  }
-
   // Calculate offset to avoid snapping center to mouse immediately
   const clientX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
   const clientY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
@@ -367,6 +363,14 @@ onMounted(() => {
   box-shadow: none;
   border-radius: 0;
   z-index: 5;
+  cursor: default; /* Not grab */
+  animation: popInPlace 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: brightness(1.1);
+}
+
+@keyframes popInPlace {
+  0% { transform: scale(1.2); filter: brightness(1.5); }
+  100% { transform: scale(1); filter: brightness(1); }
 }
 
 .draggable-piece:active {
