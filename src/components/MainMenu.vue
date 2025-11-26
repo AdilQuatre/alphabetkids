@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { Language } from '../data/content';
+
 const props = defineProps<{
-  currentLanguage: string;
+  currentLanguage: Language;
 }>();
 
 const emit = defineEmits(['selectType', 'openSettings']);
@@ -14,7 +16,11 @@ const icons = {
   settings: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Gear.png'
 };
 
-const menuItems = {
+type MenuItem = {
+  [key in Language]: { title: string; description: string };
+} & { icon: string; color: string };
+
+const menuItems: Record<string, MenuItem> = {
   letters: {
     en: { title: 'Letters', description: 'Learn ABCs' },
     fr: { title: 'Lettres', description: 'Apprendre l\'alphabet' },
