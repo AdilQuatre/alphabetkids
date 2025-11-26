@@ -39,24 +39,49 @@ const initGame = () => {
   isComplete.value = false;
   const newPieces: PuzzlePiece[] = [];
   
+  // Determine positions: 4 on left, 5 on right
+  // Left column: x=5%
+  // Right column: x=85%
+  const piecesPerSide = Math.ceil(TOTAL_PIECES / 2); // 5
+  const spacingY = 80 / piecesPerSide; // Vertical spacing
+
   for (let i = 0; i < TOTAL_PIECES; i++) {
-    // Initial random position (percentage based)
-    const side = Math.random() > 0.5 ? 'left' : 'right';
-    const randomX = side === 'left' 
-      ? Math.random() * 15 // 0-15%
-      : 85 + Math.random() * 15; // 85-100%
+    // Distribute pieces between left and right columns
+    const isLeft = i < (TOTAL_PIECES / 2); // First 4 on left, next 5 on right
+    const sideIndex = isLeft ? i : i - Math.floor(TOTAL_PIECES / 2);
     
-    const randomY = Math.random() * 80 + 10; // 10-90% vertical
+    const startX = isLeft ? 2 : 82; // 2% or 82%
+    const startY = 10 + (sideIndex * 16); // Even vertical spacing (16% gap)
 
     newPieces.push({
       id: i,
       correctIndex: i,
-      currentX: randomX,
-      currentY: randomY,
+      currentX: startX,
+      currentY: startY,
       isPlaced: false,
       image: currentImage.value
     });
   }
+  
+  // Randomize the pieces but keep the positions structured
+  // We want random pieces in these orderly slots, not random slots
+  // So we shuffle the logical pieces first, then assign them to these calculated positions?
+  // Actually, dragging logic uses currentX/Y.
+  // Let's shuffle the array of created pieces so the 'id' (correct index) is not sequential in visual order
+  
+  // Fisher-Yates shuffle positions
+  const positions = newPieces.map(p => ({ x: p.currentX, y: p.currentY }));
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+  
+  // Assign shuffled positions back to pieces
+  newPieces.forEach((p, idx) => {
+    p.currentX = positions[idx].x;
+    p.currentY = positions[idx].y;
+  });
+
   pieces.value = newPieces;
 };
 
