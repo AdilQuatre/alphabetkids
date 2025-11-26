@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build && npm run generate-sw",
+    "build": "vue-tsc -b && vite build",
     "generate-sw": "workbox-cli generateSW workbox-config.js",
     "preview": "vite preview"
   },
