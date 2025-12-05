@@ -9,7 +9,7 @@ const emit = defineEmits(['selectType', 'openSettings']);
 
 // URLs for 3D/Clay Icons (Microsoft Fluent 3D style)
 const icons = {
-  letters: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Open%20Book.png',
+  letters: '/images/mainmenualphabet.png',
   numbers: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Input%20Numbers.png',
   writing: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Pencil.png',
   recreation: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Artist%20Palette.png',
@@ -66,39 +66,82 @@ const menuItems: Record<string, MenuItem> = {
 
 <template>
   <div class="main-menu">
-    <h1 class="menu-title">
-      {{ currentLanguage === 'fr' ? 'Bonjour ! 👋'
-         : currentLanguage === 'ar' ? '👋 !مرحباً'
-         : 'Hello! 👋' }}
-    </h1>
-    
-    <div class="menu-grid">
+    <div class="menu-background"></div>
+    <div class="content-overlay">
+      <h1 class="menu-title">
+        {{ currentLanguage === 'fr' ? 'Bonjour ! 👋'
+           : currentLanguage === 'ar' ? '👋 !مرحباً'
+           : 'Hello! 👋' }}
+      </h1>
+      
+      <div class="menu-grid">
       <button
         v-for="(item, key) in menuItems"
         :key="key"
         class="menu-item"
-        :style="{ '--card-color': item.color }"
+        :class="`item-${key}`"
         @click="key === 'settings' ? emit('openSettings') : 
                emit('selectType', key as 'letters' | 'numbers' | 'writing' | 'recreation')"
       >
-        <div class="menu-icon">
-          <img :src="item.icon" alt="icon" width="80" height="80" class="clay-icon" />
+        <div class="card-bg" :style="{ background: `linear-gradient(135deg, ${item.color}20, ${item.color}05)` }"></div>
+        <div class="content-wrapper">
+          <div class="icon-wrapper">
+            <img :src="item.icon" alt="icon" width="80" height="80" class="clay-icon" />
+          </div>
+          <div class="text-wrapper">
+            <h2>{{ item[props.currentLanguage].title }}</h2>
+            <p>{{ item[props.currentLanguage].description }}</p>
+          </div>
         </div>
-        <h2>{{ item[props.currentLanguage].title }}</h2>
-        <p>{{ item[props.currentLanguage].description }}</p>
         <div class="shine"></div>
       </button>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .main-menu {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
   animation: fadeIn 0.5s ease-out;
+  min-height: 100vh;
+  position: relative;
+}
+
+.menu-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/images/background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+  opacity: 0.4; /* Transparency to keep text readable */
+  /* Alternative: use a white overlay instead of opacity if you want full opacity image but faded */
+}
+
+.main-menu::before {
+  /* White overlay to improve contrast */
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.6); /* White tint */
+  z-index: -1;
+  backdrop-filter: blur(5px); /* Optional: blurs the background slightly */
+}
+
+.content-overlay {
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes fadeIn {
@@ -107,75 +150,119 @@ const menuItems: Record<string, MenuItem> = {
 }
 
 .menu-title {
-  font-size: 3rem;
+  font-size: 3.5rem;
   color: #2c3e50;
   margin-bottom: 3rem;
-  font-weight: 800;
-  text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+  font-weight: 900;
+  letter-spacing: -1px;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.05);
 }
 
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
   padding: 1rem;
+}
+
+/* Parents button spans 2 columns on large screens if possible */
+@media (min-width: 1024px) {
+  .item-settings {
+    grid-column: span 2;
+  }
 }
 
 .menu-item {
   position: relative;
-  background: white;
-  border-radius: 24px;
-  padding: 2.5rem;
+  background: white; /* Fallback */
+  border-radius: 32px;
+  padding: 0; /* Inner padding handled by wrappers */
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  text-align: center;
-  border: 4px solid var(--card-color);
-  box-shadow: 0 10px 0 var(--card-color);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 
+    0 10px 30px -10px rgba(0,0,0,0.1),
+    0 4px 10px -5px rgba(0,0,0,0.05);
   overflow: hidden;
+  height: 100%;
+  min-height: 180px;
+  text-align: left;
+  display: flex;
+  align-items: stretch;
 }
 
-.menu-item:active {
-  transform: translateY(10px);
-  box-shadow: 0 0 0 var(--card-color);
+.card-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.content-wrapper {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  width: 100%;
+}
+
+.icon-wrapper {
+  background: white;
+  border-radius: 24px;
+  padding: 1rem;
+  box-shadow: 
+    0 8px 20px rgba(0,0,0,0.08),
+    inset 0 0 0 1px rgba(0,0,0,0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
 }
 
 .menu-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 0 var(--card-color);
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 
+    0 20px 40px -10px rgba(0,0,0,0.15),
+    0 10px 20px -5px rgba(0,0,0,0.1);
 }
 
-.menu-icon {
-  margin-bottom: 0.5rem;
-  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.15));
-  transition: transform 0.3s;
+.menu-item:hover .icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.menu-item:active {
+  transform: scale(0.98);
 }
 
 .clay-icon {
-  width: 90px;
-  height: 90px;
+  width: 70px;
+  height: 70px;
   object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
 }
 
-.menu-item:hover .menu-icon {
-  transform: scale(1.2) rotate(5deg);
+.text-wrapper {
+  flex: 1;
 }
 
 .menu-item h2 {
-  font-size: 2.2rem;
-  color: #2c3e50;
-  margin: 0;
+  font-size: 2rem;
+  color: #1a202c;
+  margin: 0 0 0.5rem 0;
   font-weight: 800;
+  line-height: 1.1;
 }
 
 .menu-item p {
-  color: #7f8c8d;
+  color: #64748b;
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 500;
+  line-height: 1.4;
 }
 
 .shine {
@@ -187,10 +274,12 @@ const menuItems: Record<string, MenuItem> = {
   background: linear-gradient(
     120deg,
     transparent,
-    rgba(255, 255, 255, 0.3),
+    rgba(255, 255, 255, 0.4),
     transparent
   );
-  transition: 0.5s;
+  transition: 0.6s;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .menu-item:hover .shine {
@@ -206,8 +295,28 @@ const menuItems: Record<string, MenuItem> = {
     font-size: 2.5rem;
   }
   
-  .menu-item {
-    padding: 2rem;
+  .content-wrapper {
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+  
+  .icon-wrapper {
+    width: 80px;
+    height: 80px;
+    padding: 0.8rem;
+  }
+  
+  .clay-icon {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .menu-item h2 {
+    font-size: 1.6rem;
+  }
+  
+  .menu-item p {
+    font-size: 1rem;
   }
 }
 </style>

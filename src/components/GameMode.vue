@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps<{
   alphabetData: Array<{ letter: string; word: string; image: string }>;
@@ -53,9 +53,58 @@ const handleDragStart = (letter: string) => {
   draggedItem.value = letter;
 };
 
+const touchPosition = ref({ x: 0, y: 0 });
+const isDraggingTouch = ref(false);
+
 const handleTouchStart = (event: TouchEvent, letter: string) => {
+  event.preventDefault();
   draggedItem.value = letter;
-  // Visual feedback could be added here
+  isDraggingTouch.value = true;
+  const touch = event.touches[0];
+  touchPosition.value = { x: touch.clientX, y: touch.clientY };
+};
+
+const handleTouchMove = (event: TouchEvent) => {
+  if (!draggedItem.value || !isDraggingTouch.value) return;
+  event.preventDefault();
+  const touch = event.touches[0];
+  touchPosition.value = { x: touch.clientX, y: touch.clientY };
+  
+  // Highlight the image card under the touch
+  const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+  const imageCard = elementBelow?.closest('.image-card');
+  document.querySelectorAll('.image-card').forEach(card => {
+    card.classList.remove('drag-over');
+  });
+  if (imageCard && !imageCard.classList.contains('matched')) {
+    imageCard.classList.add('drag-over');
+  }
+};
+
+const handleTouchEnd = (event: TouchEvent) => {
+  if (!draggedItem.value) return;
+  
+  // Find the element under the touch point
+  const touch = event.changedTouches[0];
+  const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+  
+  // Find the image card parent
+  const imageCard = elementBelow?.closest('.image-card');
+  if (imageCard) {
+    const imageCards = Array.from(document.querySelectorAll('.image-card'));
+    const imageIndex = imageCards.indexOf(imageCard as Element);
+    if (imageIndex !== -1) {
+      handleDrop(imageIndex);
+    }
+  }
+  
+  // Clean up
+  document.querySelectorAll('.image-card').forEach(card => {
+    card.classList.remove('drag-over');
+  });
+  
+  draggedItem.value = null;
+  isDraggingTouch.value = false;
 };
 
 const handleDrop = (imageIndex: number) => {
@@ -100,6 +149,14 @@ const resetGame = () => {
 
 onMounted(() => {
   initializeGame();
+  // Add touch event listeners for mobile drag and drop
+  document.addEventListener('touchmove', handleTouchMove, { passive: false });
+  document.addEventListener('touchend', handleTouchEnd);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('touchmove', handleTouchMove);
+  document.removeEventListener('touchend', handleTouchEnd);
 });
 
 // Helper to get the index of a letter in the original letters array for the click handler (if we added click-to-match later)
@@ -131,7 +188,11 @@ onMounted(() => {
             v-for="(item, index) in letters"
             :key="`l-${index}`"
             class="letter-card"
-            :class="{ 'matched': item.isMatched, 'invisible': item.isMatched }"
+            :class="{ 
+              'matched': item.isMatched, 
+              'invisible': item.isMatched,
+              'dragging': draggedItem === item.letter 
+            }"
             draggable="true"
             @dragstart="handleDragStart(item.letter)"
             @touchstart="(e) => handleTouchStart(e, item.letter)"
@@ -146,11 +207,19 @@ onMounted(() => {
             v-for="(item, index) in images"
             :key="`i-${index}`"
             class="image-card"
-            :class="{ 'matched': item.isMatched }"
+            :class="{ 
+              'matched': item.isMatched,
+              'drag-over': draggedItem && !item.isMatched 
+            }"
             @dragover="handleDragOver"
             @drop="handleDrop(index)"
+            @touchmove.prevent
           >
-            <img :src="item.image" :alt="item.word">
+            <img 
+              :src="item.image" 
+              :alt="item.word"
+              @error="(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2UwZTBlMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7wn5CgPC90ZXh0Pjwvc3ZnPg==' }"
+            >
             <div v-if="item.isMatched" class="check-mark">✅</div>
           </div>
         </div>
@@ -305,11 +374,48 @@ onMounted(() => {
   50% { transform: translateY(-10px); }
 }
 
+.letter-card.dragging {
+  opacity: 0.5;
+  transform: scale(1.1);
+  z-index: 100;
+}
+
+.image-card.drag-over {
+  border-color: #4CAF50;
+  background: #E8F5E9;
+  transform: scale(1.05);
+}
+
 @media (max-width: 600px) {
   .game-area {
     gap: 1rem;
+    flex-direction: column;
+    align-items: center;
   }
-  .letter-card { width: 60px; height: 60px; font-size: 2rem; }
-  .image-card { width: 80px; height: 80px; }
+  
+  .letters-column, .images-column {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .letter-card { 
+    width: 60px; 
+    height: 60px; 
+    font-size: 2rem;
+    touch-action: none;
+  }
+  
+  .image-card { 
+    width: 80px; 
+    height: 80px;
+    touch-action: none;
+  }
+  
+  .hint {
+    font-size: 0.9rem;
+    padding: 0 1rem;
+  }
 }
 </style>

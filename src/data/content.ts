@@ -123,7 +123,7 @@ export const alphabetData: Record<Language, AlphabetItem[]> = {
     { 
       letter: 'C', 
       word: 'Crocodile', 
-      image: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Natural-and-animals/Crocodile.png', 
+      image: '/images/crocodile.png', 
       additionalWords: [
         { word: 'Citron', image: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Food-and-drink/Lemon.png' },
         { word: 'Chat', image: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Natural-and-animals/Cat%20Face.png' },

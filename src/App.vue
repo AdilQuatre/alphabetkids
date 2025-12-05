@@ -1,22 +1,82 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import AlphabetCard from './components/AlphabetCard.vue';
 import GameMode from './components/GameMode.vue';
 import LetterFindingGame from './components/LetterFindingGame.vue';
 import MainMenu from './components/MainMenu.vue';
 import NumberMatchingGame from './components/NumberMatchingGame.vue';
+import NumberTrainGame from './components/NumberTrainGame.vue';
 import Settings from './components/Settings.vue';
 import NumberCard from './components/NumberCard.vue';
 import WritingGame from './components/WritingGame.vue';
 import ColoringGame from './components/ColoringGame.vue';
 import PuzzleGame from './components/PuzzleGame.vue';
+import ProgressDashboard from './components/ProgressDashboard.vue';
+import Celebration from './components/Celebration.vue';
 import { alphabetData, numbersData, type Language, type NumberItem } from './data/content';
+import { getPhonetic } from './data/phonetics';
+import { getBadgeById } from './data/badges';
+import { 
+  trackLetterViewed, 
+  trackLetterCorrect, 
+  trackNumberViewed,
+  trackNumberCorrect,
+  addStars, 
+  addGameScore, 
+  updateStreak,
+  checkForNewBadges,
+  loadProgress
+} from './services/progressService';
+
+// LocalStorage keys
+const STORAGE_KEYS = {
+  SETTINGS: 'alphabetKids_settings',
+  LANGUAGE: 'alphabetKids_language',
+  SELECTED_LANGUAGES: 'alphabetKids_selectedLanguages'
+};
+
+// Load from localStorage
+const loadSettings = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn('Failed to load settings from localStorage', e);
+  }
+  return null;
+};
+
+const loadLanguage = (): Language | null => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.LANGUAGE);
+    if (saved) {
+      return saved as Language;
+    }
+  } catch (e) {
+    console.warn('Failed to load language from localStorage', e);
+  }
+  return null;
+};
+
+const loadSelectedLanguages = (): Language[] | null => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.SELECTED_LANGUAGES);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn('Failed to load selected languages from localStorage', e);
+  }
+  return null;
+};
 
 // 3D/Clay Icon URLs
 const icons = {
-  home: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel-and-places/House.png',
+  home: '/images/buttonhome.png',
   // Writing
-  type: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Input%20Latin%20Uppercase.png',
+  type: '/images/menuA.png', // Custom image for "A" writing menu
   hash: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Keycap%201.png',
   user: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Child.png',
   // Recreation
@@ -29,13 +89,16 @@ const icons = {
   // Numbers
   abacus: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Abacus.png',
   gamepad: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Video%20Game.png',
-  train: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel-and-places/Locomotive.png'
+  train: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel-and-places/Locomotive.png',
+  // Navigation
+  next: '/images/buttonnext.png'
 };
 
 // Types
-type ViewMode = 'menu' | 'settings' | 'game';
+type ViewMode = 'menu' | 'settings' | 'game' | 'progress';
 type GameType = 'learning' | 'matching' | 'finding' | 'matching-numbers' | 'writing' | 'train' | 'coloring' | 'puzzle';
 type LearningType = 'letters' | 'numbers' | 'writing' | 'recreation';
+type Difficulty = 'easy' | 'medium' | 'hard';
 
 interface VoiceConfig {
   [key: string]: string;
@@ -49,12 +112,16 @@ const voiceConfigs: VoiceConfig = {
   nl: 'Dutch Female'
 };
 
-// State
-const currentLanguage = ref<Language>('fr');
+// State - Load from localStorage or use defaults
+const savedSettings = loadSettings();
+const savedLanguage = loadLanguage();
+const savedSelectedLanguages = loadSelectedLanguages();
+
+const currentLanguage = ref<Language>(savedLanguage || 'fr');
 const viewMode = ref<ViewMode>('menu');
 const gameType = ref<GameType>('learning');
 const learningType = ref<LearningType>('letters');
-const selectedLanguages = ref<Language[]>(['fr', 'en', 'ar']);
+const selectedLanguages = ref<Language[]>(savedSelectedLanguages || ['fr', 'en', 'ar']);
 
 // Parent Gate State
 const showParentGate = ref(false);
@@ -63,14 +130,24 @@ const gateQuestion = ref({ q: '', a: 0 });
 const gateAnswer = ref('');
 const gateError = ref(false);
 
-// User Settings
+// User Settings - Load from localStorage or use defaults
 const userSettings = ref({
-  theme: 'default',
-  voice: 'default',
-  speed: 1,
-  avatar: '👧',
-  childName: ''
+  theme: savedSettings?.theme || 'default',
+  voice: savedSettings?.voice || 'default',
+  speed: savedSettings?.speed || 1,
+  avatar: savedSettings?.avatar || '👧',
+  childName: savedSettings?.childName || '',
+  phoneticMode: savedSettings?.phoneticMode || false,
+  difficulty: (savedSettings?.difficulty as Difficulty) || 'easy'
 });
+
+// Celebration State
+const showCelebration = ref(false);
+const celebrationType = ref<'confetti' | 'stars' | 'badge'>('confetti');
+const celebrationBadge = ref<{ icon: string; name: string } | null>(null);
+
+// Stars earned in current session
+const sessionStars = ref(0);
 
 const allLanguages: Record<Language, string> = {
   en: 'English',
@@ -121,17 +198,96 @@ const speak = (word: string): void => {
   }
 };
 
+// Speak phonetic sound of a letter
+const speakPhonetic = (letter: string): void => {
+  const phonetic = getPhonetic(letter, currentLanguage.value);
+  if (phonetic && window.responsiveVoice) {
+    window.responsiveVoice.cancel();
+    const voice = voiceConfigs[currentLanguage.value];
+    // Speak the sound representation
+    window.responsiveVoice.speak(phonetic.sound, voice, {
+      pitch: 1.0,
+      rate: 0.8, // Slower for phonetic sounds
+      volume: 1
+    });
+  }
+};
+
 const selectLetter = (index: number): void => {
   showAll.value = false;
   currentIndex.value = index;
   selectedFriendlyWord.value = null;
   const item = alphabetData[currentLanguage.value][index];
+  
+  // Track progress
+  trackLetterViewed(item.letter);
+  
+  // Speak word or phonetic sound based on mode
+  if (userSettings.value.phoneticMode) {
+    speakPhonetic(item.letter);
+  } else {
   speak(item.word);
+  }
+  
+  // Check for new badges
+  checkAndCelebrateBadges();
 };
 
 const selectFriendlyWord = (word: string, image: string): void => {
   selectedFriendlyWord.value = { word, image };
   speak(word);
+};
+
+// Check for new badges and trigger celebration
+const checkAndCelebrateBadges = (): void => {
+  const newBadges = checkForNewBadges();
+  if (newBadges.length > 0) {
+    const badge = getBadgeById(newBadges[0]);
+    if (badge) {
+      celebrationBadge.value = {
+        icon: badge.icon,
+        name: badge.name[currentLanguage.value as keyof typeof badge.name] || badge.name.en
+      };
+      celebrationType.value = 'badge';
+      showCelebration.value = true;
+    }
+  }
+};
+
+// Award stars and trigger celebration
+const awardStars = (count: number): void => {
+  addStars(count);
+  sessionStars.value += count;
+  
+  // Trigger star celebration for significant amounts
+  if (count >= 3) {
+    celebrationType.value = 'stars';
+    showCelebration.value = true;
+  }
+  
+  checkAndCelebrateBadges();
+};
+
+// Handle game completion
+const handleGameComplete = (game: string, score: number, maxScore: number): void => {
+  addGameScore(game, score, maxScore, userSettings.value.difficulty);
+  
+  // Award stars based on score
+  const percentage = score / maxScore;
+  let stars = 0;
+  if (percentage >= 0.8) stars = 3;
+  else if (percentage >= 0.6) stars = 2;
+  else if (percentage >= 0.4) stars = 1;
+  
+  if (stars > 0) {
+    awardStars(stars);
+  }
+  
+  // Confetti celebration for completing a game
+  if (percentage >= 0.6) {
+    celebrationType.value = 'confetti';
+    showCelebration.value = true;
+  }
 };
 
 const resetSelection = (): void => {
@@ -144,7 +300,14 @@ const selectNumber = (index: number): void => {
   showAll.value = false;
   currentIndex.value = index;
   const item = numbersData[currentLanguage.value][index];
+  
+  // Track progress
+  trackNumberViewed(item.number);
+  
   speakNumber(item);
+  
+  // Check for new badges
+  checkAndCelebrateBadges();
 };
 
 const speakNumber = (item: NumberItem): void => {
@@ -168,6 +331,10 @@ const goHome = () => {
 
 const goBack = () => {
   showAll.value = true;
+};
+
+const openProgress = () => {
+  viewMode.value = 'progress';
 };
 
 const nextItem = () => {
@@ -250,13 +417,45 @@ const handleOpenSettings = () => {
 
 const updateSettings = (settings: any) => {
   userSettings.value = settings;
-  // Settings are saved, but we don't necessarily need to go home immediately if we use the close event
+  // Save to localStorage
+  try {
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  } catch (e) {
+    console.warn('Failed to save settings to localStorage', e);
+  }
 };
 
 const updateLanguages = (selectedLangs: Language[], defaultLang: Language) => {
   selectedLanguages.value = selectedLangs;
   currentLanguage.value = defaultLang;
+  // Save to localStorage
+  try {
+    localStorage.setItem(STORAGE_KEYS.LANGUAGE, defaultLang);
+    localStorage.setItem(STORAGE_KEYS.SELECTED_LANGUAGES, JSON.stringify(selectedLangs));
+  } catch (e) {
+    console.warn('Failed to save languages to localStorage', e);
+  }
 };
+
+// Watch for language changes and save
+watch(currentLanguage, (newLang) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LANGUAGE, newLang);
+  } catch (e) {
+    console.warn('Failed to save language to localStorage', e);
+  }
+});
+
+// Initialize on mount
+onMounted(() => {
+  // Ensure currentLanguage is set from saved value
+  if (savedLanguage) {
+    currentLanguage.value = savedLanguage;
+  }
+  
+  // Update streak on app start
+  updateStreak();
+});
 
 const switchLanguage = (lang: Language) => {
   currentLanguage.value = lang;
@@ -269,14 +468,36 @@ const switchLanguage = (lang: Language) => {
     `theme-${userSettings.theme}`
   ]">
     
+    <!-- Celebration Overlay -->
+    <Celebration
+      v-if="showCelebration"
+      :type="celebrationType"
+      :badge-icon="celebrationBadge?.icon"
+      :badge-name="celebrationBadge?.name"
+      @complete="showCelebration = false"
+    />
+    
     <!-- Persistent Home Button (only show when not in menu) -->
     <button 
-      v-if="viewMode !== 'menu'" 
+      v-if="viewMode !== 'menu' && viewMode !== 'progress'" 
       class="floating-home-btn"
       @click="goHome"
-      aria-label="Home"
+      :aria-label="currentLanguage === 'fr' ? 'Retour au menu principal' : 'Return to main menu'"
+      role="button"
+      tabindex="0"
     >
-      <img :src="icons.home" width="40" height="40" />
+      <img :src="icons.home" class="home-icon-img" alt="" aria-hidden="true" />
+    </button>
+    
+    <!-- Progress Button (only in Menu) -->
+    <button
+      v-if="viewMode === 'menu'"
+      class="floating-progress-btn"
+      @click="openProgress"
+      :aria-label="currentLanguage === 'fr' ? 'Ma progression' : 'My progress'"
+    >
+      <span class="progress-stars">⭐</span>
+      <span class="progress-count">{{ loadProgress().totalStars }}</span>
     </button>
 
     <!-- Language Quick Switcher (only in Menu) -->
@@ -327,7 +548,15 @@ const switchLanguage = (lang: Language) => {
       :selected-languages="selectedLanguages"
         :settings="userSettings"
       @update-languages="updateLanguages"
-        @update-settings="updateSettings"
+      @update-settings="updateSettings"
+        @close="goHome"
+    />
+
+      <!-- Progress Dashboard -->
+      <ProgressDashboard
+        v-else-if="viewMode === 'progress'"
+      :current-language="currentLanguage"
+        :child-name="userSettings.childName"
         @close="goHome"
       />
 
@@ -337,24 +566,24 @@ const switchLanguage = (lang: Language) => {
         <!-- Writing Game Mode -->
         <template v-if="gameType === 'writing'">
           <div class="game-mode-nav">
-            <button 
+          <button
               @click="writingMode = 'letters'" 
               :class="{ active: writingMode === 'letters' }"
-            >
+          >
               <img :src="icons.type" width="40" height="40" />
-            </button>
-            <button 
+          </button>
+          <button
               @click="writingMode = 'numbers'" 
               :class="{ active: writingMode === 'numbers' }"
-            >
+          >
               <img :src="icons.hash" width="40" height="40" />
-            </button>
-            <button 
+          </button>
+          <button
               @click="writingMode = 'name'" 
               :class="{ active: writingMode === 'name' }"
-            >
+          >
               <img :src="icons.user" width="40" height="40" />
-            </button>
+          </button>
           </div>
 
           <WritingGame
@@ -373,23 +602,23 @@ const switchLanguage = (lang: Language) => {
             <template v-if="learningType === 'recreation'">
               <button @click="gameType = 'coloring'" :class="{ active: gameType === 'coloring' }">
                 <img :src="icons.palette" width="40" height="40" />
-              </button>
+          </button>
               <button @click="gameType = 'puzzle'" :class="{ active: gameType === 'puzzle' }">
                 <img :src="icons.puzzle" width="40" height="40" />
-              </button>
-            </template>
+          </button>
+        </template>
 
             <template v-else-if="learningType === 'letters'">
               <button @click="gameType = 'learning'" :class="{ active: gameType === 'learning' }">
                 <img :src="icons.book" width="40" height="40" />
-              </button>
+        </button>
               <button @click="gameType = 'matching'" :class="{ active: gameType === 'matching' }">
                 <img :src="icons.target" width="40" height="40" />
-              </button>
+          </button>
               <button @click="gameType = 'finding'" :class="{ active: gameType === 'finding' }">
                 <img :src="icons.search" width="40" height="40" />
-              </button>
-            </template>
+          </button>
+        </template>
             <template v-else-if="learningType === 'numbers'">
               <button @click="gameType = 'learning'" :class="{ active: gameType === 'learning' }">
                 <img :src="icons.abacus" width="40" height="40" />
@@ -399,9 +628,37 @@ const switchLanguage = (lang: Language) => {
               </button>
               <button @click="gameType = 'train'" :class="{ active: gameType === 'train' }">
                 <img :src="icons.train" width="40" height="40" />
-              </button>
+        </button>
             </template>
           </div>
+          
+          <!-- Difficulty Selector (for applicable games) -->
+          <div 
+            v-if="gameType === 'finding' || gameType === 'matching-numbers' || gameType === 'train'"
+            class="difficulty-selector"
+          >
+            <span class="difficulty-label">
+              {{ currentLanguage === 'fr' ? 'Niveau :' : 'Level:' }}
+            </span>
+        <button
+              v-for="level in (['easy', 'medium', 'hard'] as Difficulty[])"
+              :key="level"
+              :class="['difficulty-btn', { active: userSettings.difficulty === level }]"
+              @click="userSettings.difficulty = level"
+            >
+              <span class="difficulty-icon">
+                {{ level === 'easy' ? '🌟' : level === 'medium' ? '⭐⭐' : '🌟🌟🌟' }}
+              </span>
+              <span class="difficulty-text">
+                {{ level === 'easy' 
+                  ? (currentLanguage === 'fr' ? 'Facile' : 'Easy')
+                  : level === 'medium'
+                    ? (currentLanguage === 'fr' ? 'Moyen' : 'Medium')
+                    : (currentLanguage === 'fr' ? 'Difficile' : 'Hard')
+                }}
+              </span>
+        </button>
+      </div>
 
           <!-- Learning Mode (Updated Carousel) -->
           <div v-if="gameType === 'learning'" class="learning-container">
@@ -426,13 +683,33 @@ const switchLanguage = (lang: Language) => {
         
             <!-- Focused Carousel View -->
             <div v-else class="carousel-view">
+              <!-- Phonetic Mode Toggle (only for letters) -->
+              <div v-if="learningType === 'letters'" class="mode-toggle">
+                <button 
+                  class="phonetic-toggle"
+                  :class="{ active: userSettings.phoneticMode }"
+                  @click="userSettings.phoneticMode = !userSettings.phoneticMode"
+                >
+                  <span class="toggle-icon">{{ userSettings.phoneticMode ? '🔊' : '🔤' }}</span>
+                  <span class="toggle-text">
+                    {{ userSettings.phoneticMode 
+                      ? (currentLanguage === 'fr' ? 'Mode Sons' : 'Sound Mode')
+                      : (currentLanguage === 'fr' ? 'Mode Mots' : 'Word Mode')
+                    }}
+                  </span>
+          </button>
+              </div>
+              
               <div class="carousel-main-area">
                 <button 
                   class="nav-arrow prev" 
                   @click="prevItem" 
                   :disabled="currentIndex === 0"
+                  :aria-label="currentLanguage === 'fr' ? 'Précédent' : 'Previous'"
+                  role="button"
+                  tabindex="0"
                 >
-                  ⬅️
+                  <img :src="icons.next" class="arrow-icon prev-icon" alt="" aria-hidden="true" />
           </button>
                 
                 <div class="carousel-content-wrapper">
@@ -484,6 +761,7 @@ const switchLanguage = (lang: Language) => {
                         class="friendly-icon-img"
                         width="40" 
                         height="40"
+                        @error="(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2UwZTBlMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7wn5CgPC90ZXh0Pjwvc3ZnPg==' }"
                       />
                       <span v-else class="friendly-icon">🌟</span>
                       <span class="friendly-text">{{ typeof wordItem === 'string' ? wordItem : wordItem.word }}</span>
@@ -495,8 +773,11 @@ const switchLanguage = (lang: Language) => {
                   class="nav-arrow next" 
                   @click="nextItem"
                   :disabled="currentIndex === (learningType === 'letters' ? alphabetData[currentLanguage].length : numbersData[currentLanguage].length) - 1"
+                  :aria-label="currentLanguage === 'fr' ? 'Suivant' : 'Next'"
+                  role="button"
+                  tabindex="0"
                 >
-                  ➡️
+                  <img :src="icons.next" class="arrow-icon" alt="" aria-hidden="true" />
                 </button>
               </div>
               
@@ -522,9 +803,9 @@ const switchLanguage = (lang: Language) => {
 
       <NumberMatchingGame
             v-else-if="gameType === 'matching-numbers'"
-            :numbers-data="numbersData[currentLanguage]"
-            :current-language="currentLanguage"
-          />
+        :numbers-data="numbersData[currentLanguage]"
+        :current-language="currentLanguage"
+      />
 
           <NumberTrainGame
             v-else-if="gameType === 'train'"
@@ -539,9 +820,9 @@ const switchLanguage = (lang: Language) => {
 
           <PuzzleGame
             v-else-if="gameType === 'puzzle'"
-            :current-language="currentLanguage"
-          />
-        </template>
+        :current-language="currentLanguage"
+      />
+    </template>
     </template>
     </main>
   </div>
@@ -564,8 +845,8 @@ const switchLanguage = (lang: Language) => {
   top: 20px;
   left: 20px;
   z-index: 100;
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   font-size: 2rem;
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
@@ -576,10 +857,66 @@ const switchLanguage = (lang: Language) => {
   align-items: center;
   justify-content: center;
   transition: transform 0.2s;
+  padding: 10px;
 }
 
 .floating-home-btn:active { transform: scale(0.9); }
 .rtl .floating-home-btn { left: auto; right: 20px; }
+
+/* Floating Progress Button */
+.floating-progress-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  padding: 0.8rem 1.5rem;
+  border-radius: 50px;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  border: 3px solid #FFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s;
+  animation: pulse-gold 2s infinite;
+}
+
+.floating-progress-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+}
+
+.floating-progress-btn:active {
+  transform: scale(0.95);
+}
+
+.progress-stars {
+  font-size: 1.5rem;
+  animation: spin-star 3s linear infinite;
+}
+
+.progress-count {
+  font-weight: 900;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4); }
+  50% { box-shadow: 0 4px 25px rgba(255, 215, 0, 0.7); }
+}
+
+@keyframes spin-star {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(10deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(-10deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.rtl .floating-progress-btn { right: auto; left: 20px; }
 
 /* Language Switcher */
 .language-switcher {
@@ -686,6 +1023,98 @@ const switchLanguage = (lang: Language) => {
   padding: 1rem;
 }
 
+/* Mode Toggle (Phonetic) */
+.mode-toggle {
+  margin-bottom: 1.5rem;
+}
+
+.phonetic-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1.5rem;
+  border-radius: 50px;
+  border: 3px solid #e0e0e0;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 0 #ccc;
+}
+
+.phonetic-toggle:hover {
+  transform: translateY(-2px);
+  border-color: #4ECDC4;
+}
+
+.phonetic-toggle.active {
+  background: linear-gradient(135deg, #4ECDC4, #44A08D);
+  border-color: #44A08D;
+  color: white;
+  box-shadow: 0 4px 0 #2d7a6f;
+}
+
+.toggle-icon {
+  font-size: 1.5rem;
+}
+
+.toggle-text {
+  font-weight: bold;
+}
+
+/* Difficulty Selector */
+.difficulty-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(255,255,255,0.8);
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.difficulty-label {
+  font-weight: bold;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.difficulty-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 15px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.difficulty-btn:hover {
+  border-color: #FFD93D;
+  transform: translateY(-2px);
+}
+
+.difficulty-btn.active {
+  background: linear-gradient(135deg, #FFD93D, #FFA500);
+  border-color: #FFA500;
+  color: white;
+  box-shadow: 0 4px 0 #e68a00;
+}
+
+.difficulty-icon {
+  font-size: 1rem;
+}
+
+.difficulty-text {
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
 /* Carousel View */
 .carousel-view {
   display: flex;
@@ -714,33 +1143,47 @@ const switchLanguage = (lang: Language) => {
 }
 
 .nav-arrow {
-  background: white;
-  border: 3px solid #4CAF50;
-  color: #4CAF50;
-  font-size: 2rem;
-  width: 60px;
-  height: 60px;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 0 #2E7D32;
+  box-shadow: none;
   flex-shrink: 0;
 }
 
+.arrow-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2));
+}
+
+.prev-icon {
+  transform: scaleX(-1);
+}
+
 .nav-arrow:active:not(:disabled) {
-  transform: translateY(4px);
-  box-shadow: 0 0 0;
+  transform: scale(0.9);
+  box-shadow: none;
 }
 
 .nav-arrow:disabled {
   opacity: 0.3;
   cursor: not-allowed;
-  border-color: #ccc;
-  color: #ccc;
-  box-shadow: none;
+  filter: grayscale(100%);
+}
+
+.home-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .large-card {

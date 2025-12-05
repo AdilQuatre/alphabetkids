@@ -250,8 +250,14 @@ onMounted(() => {
     @touchmove="onDrag"
   >
     <div class="header">
-      <button class="btn-icon" @click="nextImage">🖼️</button>
-      <button class="btn-icon" @click="initGame">🔄</button>
+      <button class="btn-icon" @click="nextImage">
+        <span class="btn-emoji">🖼️</span>
+        <span class="btn-text">{{ currentLanguage === 'fr' ? 'Changer' : 'Change' }}</span>
+      </button>
+      <button class="btn-icon" @click="initGame">
+        <span class="btn-emoji">🔄</span>
+        <span class="btn-text">{{ currentLanguage === 'fr' ? 'Recommencer' : 'Restart' }}</span>
+      </button>
     </div>
 
     <div class="puzzle-game-area">
@@ -309,11 +315,33 @@ onMounted(() => {
 
 .btn-icon {
   background: white;
-  border: 2px solid #eee;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 1.5rem;
+  border: 3px solid #4CAF50;
+  padding: 0.8rem 1.5rem;
+  border-radius: 25px;
+  font-size: 1.2rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 0 #2E7D32;
+  transition: all 0.2s;
+  color: #2E7D32;
+  font-weight: bold;
+}
+
+.btn-icon:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0;
+}
+
+.btn-emoji {
+  font-size: 1.5rem;
+}
+
+.btn-text {
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .btn-primary {
@@ -382,6 +410,15 @@ onMounted(() => {
   border-radius: 4px;
   /* Important for touch dragging */
   touch-action: none; 
+  /* Simple puzzle shape effect using clip-path (optional, remove if too complex) */
+  /* This is a simplified visual trick, real puzzle shapes require unique SVGs per piece */
+  /* clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); */
+}
+
+/* Apply a "jigsaw" feel with mask or border-radius trick */
+.draggable-piece, .drop-slot {
+  border-radius: 15px; /* Rounded corners for friendlier look */
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5), 0 4px 6px rgba(0,0,0,0.2);
 }
 
 .draggable-piece.placed {

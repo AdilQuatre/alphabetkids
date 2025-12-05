@@ -8,7 +8,14 @@ const props = defineProps<{
 }>();
 
 const isFlipping = ref(false);
+const imageError = ref(false);
 const emit = defineEmits(['select']);
+
+const fallbackImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2UwZTBlMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7wn5CgPC90ZXh0Pjwvc3ZnPg==';
+
+const handleImageError = () => {
+  imageError.value = true;
+};
 
 const handleSelect = () => {
   isFlipping.value = true;
@@ -27,7 +34,12 @@ const handleSelect = () => {
   >
     <div class="card-content">
       <div class="letter">{{ letter }}</div>
-      <img :src="image" :alt="word" class="word-image">
+      <img 
+        :src="imageError ? fallbackImage : image" 
+        :alt="word" 
+        class="word-image"
+        @error="handleImageError"
+      >
       <div class="word">{{ word }}</div>
       
       <div class="confetti" aria-hidden="true">

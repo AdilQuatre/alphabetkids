@@ -5,12 +5,14 @@ const props = defineProps<{
   currentLanguage: string;
   availableLanguages: Record<string, string>;
   selectedLanguages: string[];
-    settings: {
+  settings: {
     theme: string;
     voice: string;
     speed: number;
     avatar: string;
     childName: string;
+    phoneticMode?: boolean;
+    difficulty?: 'easy' | 'medium' | 'hard';
   };
 }>();
 
@@ -33,6 +35,8 @@ const selectedVoice = ref(props.settings.voice);
 const selectedSpeed = ref(props.settings.speed);
 const selectedAvatar = ref(props.settings.avatar);
 const childName = ref(props.settings.childName || '');
+const phoneticMode = ref(props.settings.phoneticMode || false);
+const difficulty = ref<'easy' | 'medium' | 'hard'>(props.settings.difficulty || 'easy');
 
 // Constants
 const themes = {
@@ -112,7 +116,9 @@ const saveAll = () => {
     voice: selectedVoice.value,
     speed: selectedSpeed.value,
     avatar: selectedAvatar.value,
-    childName: childName.value
+    childName: childName.value,
+    phoneticMode: phoneticMode.value,
+    difficulty: difficulty.value
   });
 
   emit('close');

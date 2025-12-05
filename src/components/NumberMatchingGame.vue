@@ -149,6 +149,7 @@ const congratsText = computed(() => {
                 alt="item"
                 class="mini-image"
                 :style="{ animationDelay: `${imgIndex * 0.1}s` }"
+                @error="(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2UwZTBlMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7wn5CgPC90ZXh0Pjwvc3ZnPg==' }"
               >
             </div>
           </div>
@@ -303,8 +304,37 @@ const congratsText = computed(() => {
 .play-again-button:hover { transform: rotate(180deg); }
 
 @media (max-width: 600px) {
+  .game-container {
+    padding: 0.5rem;
+  }
+  
+  .big-number {
+    font-size: 4rem;
+  }
+  
+  .question-text {
+    font-size: 1.2rem;
+    text-align: center;
+    padding: 0 1rem;
+  }
+  
   .cards-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .count-card {
+    min-height: 150px;
+    padding: 0.8rem;
+  }
+  
+  .mini-image {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .progress-bar {
+    margin-bottom: 1rem;
   }
 }
 </style>
