@@ -7,7 +7,7 @@ const props = defineProps<{
   fallback?: string;
   width?: number | string;
   height?: number | string;
-  class?: string;
+  imgClass?: string;
 }>();
 
 const imageError = ref(false);
@@ -24,7 +24,7 @@ const handleError = () => {
     :alt="alt || ''"
     :width="width"
     :height="height"
-    :class="class"
+    :class="imgClass"
     @error="handleError"
   />
 </template>
