@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { getStats, loadProgress, type UserProgress } from '../services/progressService';
-import { badges, getBadgeById } from '../data/badges';
+import { badges, getBadgeById, type Badge } from '../data/badges';
+import type { Language } from '../data/content';
 
 const props = defineProps<{
-  currentLanguage: string;
+  currentLanguage: Language;
   childName: string;
 }>();
+
+// Helper to safely get localized text from badge
+const getLocalizedName = (badge: Badge | undefined, lang: Language): string => {
+  if (!badge) return '';
+  return badge.name[lang] || badge.name.en;
+};
 
 const emit = defineEmits(['close']);
 
@@ -117,7 +124,7 @@ onMounted(() => {
           :style="{ '--badge-color': badge?.color }"
         >
           <div class="badge-icon">{{ badge?.icon }}</div>
-          <div class="badge-name">{{ badge?.name[currentLanguage as keyof typeof badge.name] || badge?.name.en }}</div>
+          <div class="badge-name">{{ getLocalizedName(badge, currentLanguage) }}</div>
         </div>
       </div>
       
